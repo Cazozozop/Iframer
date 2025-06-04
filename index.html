@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Iframe & Image Console</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      padding: 10px;
+      background: #222;
+      color: white;
+      display: flex;
+      align-items: center;
+    }
+    input {
+      flex: 1;
+      padding: 5px;
+      margin-right: 10px;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    iframe {
+      flex: 1;
+      border: none;
+    }
+    #console {
+      height: 200px;
+      overflow-y: auto;
+      background: #111;
+      color: lime;
+      padding: 10px;
+      font-family: monospace;
+    }
+    .img-link {
+      display: block;
+      margin-bottom: 5px;
+      color: cyan;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <input id="urlInput" placeholder="Entre un lien ici (https://...)" />
+    <button onclick="loadSite()">Charger</button>
+  </header>
+  <div id="main">
+    <iframe id="siteFrame" sandbox="allow-same-origin allow-scripts"></iframe>
+  </div>
+  <div id="console">[Console prête]</div>
+
+  <script>
+    function loadSite() {
+      const url = document.getElementById('urlInput').value;
+      const iframe = document.getElementById('siteFrame');
+      const consoleDiv = document.getElementById('console');
+
+      iframe.src = url;
+      consoleDiv.innerHTML = '[Chargement des images...]';
+
+      // Attendre que le site charge
+      iframe.onload = () => {
+        try {
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          const imgs = doc.images;
+          consoleDiv.innerHTML = '';
+
+          if (imgs.length === 0) {
+            consoleDiv.innerHTML = '[Aucune image trouvée]';
+            return;
+          }
+
+          for (let img of imgs) {
+            const link = document.createElement('a');
+            link.textContent = img.src;
+            link.href = img.src;
+            link.target = '_blank';
+            link.className = 'img-link';
+
+            // Optionnel : convertir en base64 (peu fiable à cause du CORS)
+            fetch(img.src)
+              .then(r => r.blob())
+              .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  link.href = reader.result;
+                  link.textContent = '[Base64] ' + img.src;
+                };
+                reader.readAsDataURL(blob);
+              })
+              .catch(() => {
+                link.textContent = '[Lien direct] ' + img.src;
+              });
+
+            consoleDiv.appendChild(link);
+          }
+        } catch (e) {
+          consoleDiv.innerHTML = '[Impossible d’accéder au contenu du site à cause des règles de sécurité (CORS)]';
+        }
+      };
+    }
+  </script>
+</body>
+</html>
